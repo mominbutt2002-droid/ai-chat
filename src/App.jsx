@@ -1,24 +1,24 @@
 import { ChatWidget } from './components/chat/ChatWidget.jsx';
 import { ThemeToggle } from './components/ThemeToggle.jsx';
+import { supportAgentConfig } from '../shared/supportAgent.config.js';
 
 export default function App() {
+  const { shopName, workshopPhone } = supportAgentConfig;
+
   return (
     <>
       <ThemeToggle className="theme-toggle--floating" />
       <main className="demo-page">
-        <span className="demo-page__badge">Демо-страница</span>
-        <h1>ОблакоСервис — облачная платформа для бизнеса</h1>
+        <span className="demo-page__badge">Интернет-магазин</span>
+        <h1>{shopName} — автотовары с доставкой</h1>
         <p>
-          Это учебный лендинг: контент страницы остаётся на фоне, а чат с ИИ-агентом открывается
-          виджетом в правом нижнем углу, как в Jivo.
+          Масла, фильтры, тормозные системы, аккумуляторы, шины и запчасти. В чате консультант
+          отвечает только по товарам. Вопросы по ремонту в сервисе — по телефону мастерской{' '}
+          {workshopPhone}.
         </p>
         <p>
-          Нажмите на зелёную кнопку чата, чтобы продолжить диалог из мок-истории, отправить своё
-          сообщение или выбрать быстрый ответ.
-        </p>
-        <p>
-          Ответы агента имитируются локально: задержка 0,8–1,2 с и шаблоны по ключевым словам
-          (API, стоимость, оператор).
+          Откройте виджет в правом нижнем углу: можно продолжить демо-диалог или задать свой
+          вопрос (ответ через Gemini, если настроен backend).
         </p>
       </main>
       <ChatWidget />

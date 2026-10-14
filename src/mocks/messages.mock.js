@@ -1,11 +1,18 @@
+import {
+  buildWorkshopRedirectMessage,
+  supportAgentConfig,
+} from '../../shared/supportAgent.config.js';
+
 export const MOCK_CONVERSATION_ID = 'mock-conv-1';
 
 export const mockQuickReplies = [
-  'Как подключить API?',
-  'Стоимость',
-  'Связаться с человеком',
-  'Часы работы',
+  'Масло на Hyundai Solaris',
+  'Тормозные колодки',
+  'Есть ли доставка?',
+  'Подбор по VIN',
 ];
+
+const { shopName, workshopPhone } = supportAgentConfig;
 
 const baseTime = Date.now() - 1000 * 60 * 45;
 
@@ -19,14 +26,14 @@ export const mockInitialMessages = [
     conversationId: MOCK_CONVERSATION_ID,
     role: 'assistant',
     content:
-      'Добрый день! Вы написали в чат поддержки «ОблакоСервис». Обычно отвечаем в течение пары минут.',
+      `Добрый день! Чат «${shopName}». Помогу с автотоварами: подбор, наличие, доставка. Для ремонта в сервисе — звоните в мастерскую: ${workshopPhone}.`,
     createdAt: new Date(baseTime).toISOString(),
   },
   {
     id: 'mock-msg-2',
     conversationId: MOCK_CONVERSATION_ID,
     role: 'user',
-    content: 'Добрый день! Подскажите, есть ли пробный период?',
+    content: 'Нужны передние колодки на Kia Rio 2018, бензин 1.6',
     createdAt: new Date(baseTime + 1000 * 60 * 2).toISOString(),
   },
   {
@@ -34,45 +41,48 @@ export const mockInitialMessages = [
     conversationId: MOCK_CONVERSATION_ID,
     role: 'assistant',
     content:
-      'Да, пробный период — 14 дней на тарифе «Старт». Карта для активации не нужна. Хотите ссылку на регистрацию?',
+      'Для Rio 2018 1.6 подойдут колодки арт. AD-BP4410 (аналог Mobis 58101-1RA00) — 2 490 ₽, в наличии. Нужны с доставкой или заберёте с пункта на ул. Гаражная, 12?',
     createdAt: new Date(baseTime + 1000 * 60 * 3).toISOString(),
   },
   {
     id: 'mock-msg-4',
     conversationId: MOCK_CONVERSATION_ID,
     role: 'user',
-    content: 'Да, пришлите, пожалуйста.',
+    content: 'А вы стук в подвеске на холодную устраняете?',
     createdAt: new Date(baseTime + 1000 * 60 * 5).toISOString(),
   },
   {
     id: 'mock-msg-5',
     conversationId: MOCK_CONVERSATION_ID,
     role: 'assistant',
-    content:
-      'Регистрация: https://demo.oblako.example/signup — после входа в кабинете откройте раздел «Интеграции» → «Чат». Если что-то пойдёт не так, напишите сюда.',
+    content: buildWorkshopRedirectMessage(),
     createdAt: new Date(baseTime + 1000 * 60 * 6).toISOString(),
   },
 ];
 
+const AUTO_PRODUCT_PATTERN =
+  /масл|фильтр|колодк|тормоз|диск|шин|резин|аккумулятор|акб|свеч|ремн|подшипник|антифриз|омыва|ламп|щётк|дворник|запчаст|детал|vin|вин|артикул|наличи|доставк|оплат|возврат|гарант|аналог|оригинал|подбор|комплект|сайлентблок|амортизатор|стойк|сцеплен|генератор|стартер|салон|коврик|чехол|авто|машин|легков|кроссовер|седан|двигател|кузов|бампер|фара|зеркал|hyundai|kia|toyota|bmw|mercedes|lada|ваз|газ|uaz|nissan|volkswagen|ford|renault|skoda/i;
+
 const KEYWORD_REPLIES = [
   {
-    test: /api|интеграц|подключ/i,
+    test: /доставк|курьер|почт|сдэк|получ/i,
     content:
-      'Для API: в личном кабинете создайте ключ в разделе «Разработчикам». Документация — https://demo.oblako.example/docs/chat-api. Нужна помощь с конкретным эндпоинтом?',
+      'Доставка по городу — 1–2 дня (от 390 ₽), по России — СДЭК/Почта от 3 дней. Самовывоз с ул. Гаражная, 12. Напишите город и что заказываете — посчитаю срок.',
   },
   {
-    test: /стоим|цен|тариф|оплат/i,
+    test: /vin|вин|артикул|подбор/i,
     content:
-      'Тарифы: «Старт» — 0 ₽ (14 дней), «Бизнес» — 2 490 ₽/мес, «Про» — 5 990 ₽/мес. На «Бизнес» входит до 5 операторов и ИИ-подсказки. Уточнить скидку на год?',
+      'Пришлите VIN или марку/модель/год и что нужно (например, «масло моторное») — подберу артикулы и аналоги из каталога.',
   },
   {
-    test: /человек|оператор|менеджер|жив/i,
+    test: /масл|motul|castrol|shell|лукойл|зил|sae|0w|5w/i,
     content:
-      'Передаю запрос коллеге. Оставьте email или телефон — специалист свяжется в рабочее время (пн–пт, 9:00–18:00 МСК).',
+      'Подберу масло по допускам API/ACEA и объёму. Укажите марку, модель, год и тип двигателя (бензин/дизель, объём) — предложу 2–3 варианта в наличии.',
   },
   {
-    test: /час|работ|время|когда/i,
-    content: 'Мы на связи пн–пт с 9:00 до 18:00 по Москве. В нерабочее время ИИ-агент принимает обращения и передаёт их утром.',
+    test: /колодк|тормоз/i,
+    content:
+      'Нужны марка, модель, год и ось (перед/зад). Могу предложить оригинал и аналоги с ценой и сроком поставки.',
   },
 ];
 
@@ -87,12 +97,21 @@ export function createMockMessage(role, content, overrides = {}) {
   };
 }
 
+export function isAutoProductsQuestion(text) {
+  return AUTO_PRODUCT_PATTERN.test((text || '').trim());
+}
+
 export function getMockAgentReply(userText, _history) {
   const text = (userText || '').trim();
+
+  if (!isAutoProductsQuestion(text)) {
+    return createMockMessage('assistant', buildWorkshopRedirectMessage());
+  }
+
   const match = KEYWORD_REPLIES.find((rule) => rule.test.test(text));
   const content = match
     ? match.content
-    : `Спасибо за сообщение! Я зафиксировал: «${text.slice(0, 120)}${text.length > 120 ? '…' : ''}». Уточните, пожалуйста, продукт или задачу — подскажу точнее.`;
+    : `По автотоварам помогу. Уточните марку, модель, год и что именно нужно (например: «фильтр масляный»). Ваш запрос: «${text.slice(0, 100)}${text.length > 100 ? '…' : ''}».`;
 
   return createMockMessage('assistant', content);
 }

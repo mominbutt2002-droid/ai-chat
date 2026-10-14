@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { requestAgentReply } from '../api/chat.js';
 import { mockAgent } from '../mocks/agent.mock.js';
 import {
   getMockAgentReply,
@@ -7,13 +8,18 @@ import {
   mockQuickReplies,
 } from '../mocks/messages.mock.js';
 
-const USE_MOCKS = import.meta.env.DEV || !import.meta.env.VITE_API_URL;
+const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
+
+function toApiHistory(messageList) {
+  const forApi = USE_MOCKS
+    ? messageList
+    : messageList.filter((m) => !String(m.id || '').startsWith('mock-'));
+  return forApi.map((m) => ({ role: m.role, content: m.content }));
+}
 
 export function useChatSession() {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState(() =>
-    USE_MOCKS ? [...mockInitialMessages] : [],
-  );
+  const [messages, setMessages] = useState(() => [...mockInitialMessages]);
   const [isTyping, setIsTyping] = useState(false);
   const [hasBeenOpened, setHasBeenOpened] = useState(false);
   const [unreadBadge, setUnreadBadge] = useState(1);
@@ -45,28 +51,55 @@ export function useChatSession() {
       if (!text || isTyping) return;
 
       const userMessage = {
-        id: `mock-msg-user-${Date.now()}`,
+        id: `msg-user-${Date.now()}`,
         role: 'user',
         content: text,
         createdAt: new Date().toISOString(),
       };
 
-      setMessages((prev) => [...prev, userMessage]);
       setIsTyping(true);
 
-      if (USE_MOCKS) {
-        const delay = getMockReplyDelay();
-        replyTimerRef.current = setTimeout(() => {
-          setMessages((prev) => {
-            const reply = getMockAgentReply(text, prev);
-            return [...prev, reply];
+      setMessages((prev) => {
+        const next = [...prev, userMessage];
+
+        if (USE_MOCKS) {
+          const delay = getMockReplyDelay();
+          replyTimerRef.current = setTimeout(() => {
+            setMessages((current) => {
+              const reply = getMockAgentReply(text, current);
+              return [...current, reply];
+            });
+            setIsTyping(false);
+            replyTimerRef.current = null;
+          }, delay);
+          return next;
+        }
+
+        requestAgentReply(toApiHistory(next))
+          .then((assistantMessage) => {
+            setMessages((current) => [...current, assistantMessage]);
+          })
+          .catch((err) => {
+            setMessages((current) => {
+              const fallback = getMockAgentReply(text, current);
+              return [
+                ...current,
+                {
+                  ...fallback,
+                  id: `msg-error-${Date.now()}`,
+                  content: err.message?.includes('перегружен')
+                    ? `${err.message} Пока что: ${fallback.content}`
+                    : `Не удалось получить ответ от Gemini (${err.message}). ${fallback.content}`,
+                },
+              ];
+            });
+          })
+          .finally(() => {
+            setIsTyping(false);
           });
-          setIsTyping(false);
-          replyTimerRef.current = null;
-        }, delay);
-      } else {
-        setIsTyping(false);
-      }
+
+        return next;
+      });
     },
     [isTyping],
   );
